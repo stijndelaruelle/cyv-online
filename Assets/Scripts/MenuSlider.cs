@@ -42,6 +42,11 @@ public class MenuSlider : MonoBehaviour
         }
 	}
 
+    public void Close()
+    {
+        StartCoroutine(Slide(-1.0f));
+    }
+
     private void Swipe(Vector3 virtualKeyPosition)
     {
         float dist = virtualKeyPosition.x - m_LastMousePosX;

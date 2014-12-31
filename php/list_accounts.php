@@ -1,7 +1,8 @@
 <?php
+    include('general.php');
+
     //Database connection
-    $db = mysql_connect("localhost", "blargal_main", "wafels") or die("Could not connect to database: " . mysql_error()); 
-    mysql_select_db("blargal_main") or die("Could not select database: blargal_main");
+    $db = General::Connect();
  
     $result = mysql_query("SELECT * FROM cyvasse_users") or die("Query failed: " . mysql_error());
  

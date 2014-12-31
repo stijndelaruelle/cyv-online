@@ -1,18 +1,16 @@
 <?php 
+    include('general.php');
+
     //Database connection
-    $db = mysql_connect("localhost", "blargal_main", "wafels") or die("Could not connect to database: " . mysql_error()); 
-    mysql_select_db("blargal_main") or die("Could not select database: blargal_main");
+    $db = General::Connect();
 
     // Strings must be escaped to prevent SQL injection attack. 
     $p_username = mysql_real_escape_string($_GET["username"], $db); 
     $p_password = mysql_real_escape_string($_GET["password"], $db); 
 
-    //Hash generated from the application
-    $p_hash = $_GET["hash"];
-    $secretKey = "CyvasseKey"; // Change this value to match the value stored in the client javascript below 
-
-    //Create our own hash & compare it
-    $real_hash = md5($p_username . $p_password . $secretKey);
+    //Compare hashes
+    $p_hash = $_GET["hash"]; //Hash generated from the application
+    $real_hash = md5($p_username . $p_password . General::SecretKey()); //Create our own hash
 
     if($real_hash == $p_hash)
     {
@@ -25,6 +23,7 @@
         if ($rowcount < 1)
         {
             //Nope? Then this username simply doesn't exist
+            General::ReturnSuccess(false);
             echo("Incorrect username.");
             return;
         }
@@ -32,15 +31,17 @@
         //Check for the correct password
         if ($p_password != $row["password"])
         {
+            General::ReturnSuccess(false);
             echo("Incorrect password.");
             return;
         }
 
         //Everything succeeded?
-        echo(true);
+        General::ReturnSuccess(true);
     }
     else
     {
+        General::ReturnSuccess(false);
         echo("Hashes didn't match!");
     }
 ?>
