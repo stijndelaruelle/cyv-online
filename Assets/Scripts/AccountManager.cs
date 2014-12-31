@@ -6,24 +6,20 @@ using System.Collections.Generic;
 
 public class AccountManager : MonoBehaviour
 {
-    public InputField username;
-    public InputField password;
-    public Text accounts;
+    public InputField m_UsernameField;
+    public InputField m_PasswordField;
+	public InputField m_SearchField;
+	public Text m_TextField; //temp
 
-    private string secretKey = "CyvasseKey"; // Edit this value and make sure it's the same as the one stored on the server
+    private string m_SecretKey = "CyvasseKey"; // Edit this value and make sure it's the same as the one stored on the server
 
-    private string loginURL = "http://blargal.com/cyvasse/login.php?";
-    private string registerURL = "http://blargal.com/cyvasse/create_account.php?"; //be sure to add a ? to your url
-    private string listAccountsURL = "http://blargal.com/cyvasse/list_accounts.php";
-
-    public void Start()
-    {
-        ListAccounts();
-    }
+    private string m_LoginURL = "http://blargal.com/cyvasse/login.php?";
+    private string m_RegisterURL = "http://blargal.com/cyvasse/create_account.php?"; //be sure to add a ? to your url
+	private string m_SearchAccountsURL = "http://blargal.com/cyvasse/search_account.php?";
 
     public void Login()
     {
-        StartCoroutine(LoginRoutine(username.text, password.text));
+		StartCoroutine(LoginRoutine(m_UsernameField.text, m_PasswordField.text));
     }
 
     public void Logout()
@@ -33,13 +29,13 @@ public class AccountManager : MonoBehaviour
 
     public void Register()
     {
-        StartCoroutine(RegisterRoutine(username.text, password.text));
+		StartCoroutine(RegisterRoutine(m_UsernameField.text, m_PasswordField.text));
     }
 
-    public void ListAccounts()
-    {
-        StartCoroutine(ListAccountsRoutine());
-    }
+	public void SearchAccount()
+	{
+		StartCoroutine(SearchAccountRoutine (m_SearchField.text));
+	}
 
     //------------
     // Routines
@@ -47,11 +43,11 @@ public class AccountManager : MonoBehaviour
     IEnumerator LoginRoutine(string username, string password)
     {
         //Create a hash for security reasons
-        string hash = Md5Sum(username + password + secretKey);
+        string hash = Md5Sum(username + password + m_SecretKey);
 
-        string get_url = loginURL + "username=" + WWW.EscapeURL(username) +
-                                    "&password=" + password +
-                                    "&hash=" + hash;
+        string get_url = m_LoginURL + "username="  + WWW.EscapeURL(username) +
+                                      "&password=" + password +
+                                      "&hash="     + hash;
 
         WWW get = new WWW(get_url);
         yield return get;
@@ -76,9 +72,9 @@ public class AccountManager : MonoBehaviour
     IEnumerator RegisterRoutine(string username, string password)
     {
         //Create a hash for security reasons
-        string hash = Md5Sum(username + password + secretKey);
+        string hash = Md5Sum(username + password + m_SecretKey);
 
-        string post_url = registerURL + "username=" + WWW.EscapeURL(username) +
+        string post_url = m_RegisterURL + "username="  + WWW.EscapeURL(username) +
                                         "&password=" + password +
                                         "&hash="     + hash;
 
@@ -92,23 +88,30 @@ public class AccountManager : MonoBehaviour
             Debug.Log("There was an error registering an account: " + post.error);
             yield return null;
         }
-
-        ListAccounts();
     }
 
-    IEnumerator ListAccountsRoutine()
-    {
-        WWW get = new WWW(listAccountsURL);
-        yield return get;
+	//Crazy version of SearchAccountRoutine, not used because searching this way would take pretty long
+	IEnumerator SearchAccountRoutine(string username)
+	{
+		//Create a hash for security reasons
+		string hash = Md5Sum(username + m_SecretKey);
+		
+		string get_url = m_SearchAccountsURL + "username=" + WWW.EscapeURL(username) +
+											   "&hash="    + hash;
 
-        //Handle error
-        if (get.error != null)
-        {
-            Debug.Log("There was an error listing accounts: " + get.error);
-        }
+		// Post the URL to the site and create a download object to get the result.
+		WWW get = new WWW(get_url);
+		yield return get; // Wait until the download is done
 
-        accounts.text = get.text; // this is a GUIText that will display the scores in game.
-    }
+		//Handle error
+		if (get.error != null)
+		{
+			Debug.Log("There was an error searching for accounts: " + get.error);
+		}
+
+		//Use info
+		m_TextField.text = get.text;
+	}
 
     private string Md5Sum(string strToEncrypt)
     {

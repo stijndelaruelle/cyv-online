@@ -8,13 +8,13 @@
     $p_password = mysql_real_escape_string($_GET["password"], $db); 
 
     //Hash generated from the application
-    $hash = $_GET["hash"];
+    $p_hash = $_GET["hash"];
     $secretKey = "CyvasseKey"; // Change this value to match the value stored in the client javascript below 
 
     //Create our own hash & compare it
     $real_hash = md5($p_username . $p_password . $secretKey);
 
-    if($real_hash == $hash)
+    if($real_hash == $p_hash)
     {
         // Send variables for the MySQL database class. 
         $result = mysql_query("INSERT INTO cyvasse_users (user_id, username, password) VALUES('', '$p_username', '$p_password')") or die("Query failed: " . mysql_error()); 
