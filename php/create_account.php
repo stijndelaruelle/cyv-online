@@ -14,13 +14,27 @@
 
     if($real_hash == $p_hash)
     {
+        //Check if this username already exists
+        if (General::GetPlayerID($p_username) != -1)
+        {
+            General::ReturnSuccess(false);
+            echo("Username already taken!");
+            return;
+        }
+
         // Send variables for the MySQL database class. 
-        $result = mysql_query("INSERT INTO cyvasse_users (user_id, username, password) VALUES('', '$p_username', '$p_password')") or die("Query failed: " . mysql_error());
-        General::ReturnSuccess(true);
+        $currentDate = date('Y-m-d H:i:s');
+
+        $result = mysql_query("INSERT INTO cyvasse_users (user_id, username, password, email, ip, last_login_date, reg_date, refresh)
+                                      VALUES('', '$p_username', '$p_password', 'hello@blargal.com', '', '$currentDate', '$currentDate', '1')")
+                                      or die("Query failed: " . mysql_error());
+
+        if (!$result) General::ReturnSuccess(false);
+        else          General::ReturnSuccess(true);
     }
     else
     {
         General::ReturnSuccess(false);
-        echo("Hashes didn't match!");
+        echo("Hashes didn't match in create account!");
     }
 ?>

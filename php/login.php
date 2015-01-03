@@ -16,8 +16,9 @@
     {
         //Check if username & password are correct (anti SQL-injection)
         $query = sprintf("SELECT * FROM cyvasse_users WHERE username='%s'", mysql_real_escape_string($p_username));
-        $row = mysql_fetch_assoc(mysql_query($query));
-        $rowcount = mysql_num_rows(mysql_query($query));
+        $result = mysql_query($query);
+        $row = mysql_fetch_assoc($result);
+        $rowcount = mysql_num_rows($result);
 
         //Do we even have a record with this username?       
         if ($rowcount < 1)
@@ -36,12 +37,18 @@
             return;
         }
 
+        //Update last login time
+        $currentDate = date('Y-m-d H:i:s');
+        $id = $row['user_id'];
+        mysql_query("UPDATE cyvasse_users SET last_login_date = '$currentDate' WHERE user_id = '$id'") or die (mysql_error());
+
         //Everything succeeded?
         General::ReturnSuccess(true);
+        echo($id);
     }
     else
     {
         General::ReturnSuccess(false);
-        echo("Hashes didn't match!");
+        echo("Hashes didn't match in login!");
     }
 ?>

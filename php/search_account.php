@@ -16,8 +16,9 @@
     {
         //Check if username & password are correct (anti SQL-injection)
         $query = sprintf("SELECT * FROM cyvasse_users WHERE username='%s'", mysql_real_escape_string($p_username));
-        $row = mysql_fetch_assoc(mysql_query($query));
-        $rowcount = mysql_num_rows(mysql_query($query));
+        $result = mysql_query($query);
+        $row = mysql_fetch_assoc($result);
+        $rowcount = mysql_num_rows($result);
 
         //Do we even have a record with this username?       
         if ($rowcount < 1)
@@ -30,13 +31,13 @@
 
         //Return some data about the user
         General::ReturnSuccess(true);
+        echo($row['user_id']);
+        echo("/");
         echo($row['username']);
-        //echo("avatar");
-        //...
     }
     else
     {
         General::ReturnSuccess(false);
-        echo("Hashes didn't match!");
+        echo("Hashes didn't match in search account!");
     }
 ?>

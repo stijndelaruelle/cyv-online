@@ -24,16 +24,34 @@ class General
 	{
         //Check player 1
         $query = sprintf("SELECT * FROM cyvasse_users WHERE username='%s'", mysql_real_escape_string($username));
-        $row = mysql_fetch_assoc(mysql_query($query));
-        $rowcount = mysql_num_rows(mysql_query($query));
+        $result = mysql_query($query);
+        $row = mysql_fetch_assoc($result);
+        $rowcount = mysql_num_rows($result);
 
         //Do we even have a record with this username?       
         if ($rowcount < 1)
         {
             return -1;
         }
-;
+
         return $row['user_id'];
+	}
+
+	static function GetPlayerName($id)
+	{
+        //Check player 1
+        $query = sprintf("SELECT * FROM cyvasse_users WHERE user_id='$id'");
+        $result = mysql_query($query);
+        $row = mysql_fetch_assoc($result);
+        $rowcount = mysql_num_rows($result);
+
+        //Do we even have a record with this username?       
+        if ($rowcount < 1)
+        {
+            return -1;
+        }
+
+        return $row['username'];
 	}
 }
 
