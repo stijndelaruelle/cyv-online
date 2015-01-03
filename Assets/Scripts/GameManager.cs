@@ -289,7 +289,8 @@ public class GameManager : MonoBehaviour
 
         if (firstChar == '1')
         {
-            m_GameInfo[m_CurrentGameID - 1].m_Board = text;
+            GameInfo gameInfo = m_GameInfo.Find(x => (x.m_GameID == gameID));
+            gameInfo.m_Board = text;
             if (OnGetBoard != null) OnGetBoard();
         }
         else
