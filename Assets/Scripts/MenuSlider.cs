@@ -70,8 +70,24 @@ public class MenuSlider : MonoBehaviour
         {
             if (!m_IsDragging && (Mathf.Abs(virtualKeyPosition.x - m_StartMousePosX) > m_MinDistance))
             {
-                m_IsDragging = true;
-                StopAllCoroutines();
+                bool temp = true;
+
+                //Only start Draggin if we were close to the edge when we started swiping LAME FIX
+                if (m_RectTransform.transform.position.x == -m_RectTransform.sizeDelta.x)
+                {
+                    temp = false;
+
+                    if (m_StartMousePosX < m_MinDistance)
+                    {
+                        temp = true;
+                    }
+                }
+                
+                if (temp)
+                {
+                    m_IsDragging = true;
+                    StopAllCoroutines();
+                }
             }
 
             if (m_IsDragging)

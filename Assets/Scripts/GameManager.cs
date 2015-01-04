@@ -11,7 +11,7 @@ public enum GameState
     GameComplete
 }
 
-public enum Color
+public enum GameColor
 {
     White,
     Black
@@ -78,7 +78,7 @@ public enum UnitID
 public class GameInfo
 {
     public int m_GameID;
-    public Color m_PlayerColor; //What color are we playing?
+    public GameColor m_PlayerColor; //What color are we playing?
     public GameState m_GameState;
     public string m_OpponentName;
     public string m_Board;
@@ -104,6 +104,7 @@ public class GameManager : MonoBehaviour
     private string m_CreateGameURL = "http://blargal.com/cyvasse/create_game.php?";
     private string m_GetGamesURL = "http://blargal.com/cyvasse/get_games.php?";
     private string m_GetBoardURL = "http://blargal.com/cyvasse/get_board.php?";
+    private string m_MoveURL = "http://blargal.com/cyvasse/move.php?";
 
     private List<GameInfo> m_GameInfo = new List<GameInfo>();
     public List<GameInfo> GameInfo
@@ -112,6 +113,10 @@ public class GameManager : MonoBehaviour
     }
 
     private int m_CurrentGameID = 0;
+    public GameInfo CurrentGame
+    {
+        get { return m_GameInfo.Find(x => (x.m_GameID == m_CurrentGameID)); }
+    }
 
     //---------------------
     // Functions
@@ -147,6 +152,17 @@ public class GameManager : MonoBehaviour
     {
         if (!AccountManager.instance.LoginCheck()) return;
         StartCoroutine(GetBoardRoutine(gameID));
+    }
+
+    public void SubmitMove(int unitID, int tileID, int killedID)
+    {
+        if (!AccountManager.instance.LoginCheck()) return;
+        StartCoroutine(MoveUnitRoutine(unitID, tileID, killedID));
+    }
+
+    public void SubmitSetup(List<int> tileID)
+    {
+
     }
 
     //------------
@@ -244,7 +260,7 @@ public class GameManager : MonoBehaviour
                 {
                     gameInfo.m_GameID = gameID;
                     gameInfo.m_GameState = (GameState)gameState;
-                    gameInfo.m_PlayerColor = (Color)color;
+                    gameInfo.m_PlayerColor = (GameColor)color;
                     gameInfo.m_OpponentName = opponentName;
                     gameInfo.m_Board = "";
                     m_GameInfo.Add(gameInfo);
@@ -300,6 +316,49 @@ public class GameManager : MonoBehaviour
         yield return null;
     }
 
+    private IEnumerator MoveUnitRoutine(int unitID, int tileID, int killedID)
+    {
+        AccountManager accountManager = AccountManager.instance;
+
+        //Create a hash for security reasons
+        string hash = Globals.Md5(accountManager.ID.ToString() +CurrentGame.m_GameID.ToString() + unitID.ToString() + tileID.ToString() + killedID.ToString() + Globals.SECRET_KEY);
+
+        string url = m_MoveURL + "p=" + accountManager.ID +
+                                 "&g=" + CurrentGame.m_GameID +
+                                 "&u=" + unitID +
+                                 "&t=" + tileID +
+                                 "&k=" + killedID +
+                                 "&hash=" + hash;
+
+        WWW www = new WWW(url);
+        yield return www;
+
+        //Handle technical error
+        if (www.error != null)
+        {
+            Debug.Log("There was an error moving a unit in: " + www.error);
+            yield return null;
+        }
+
+        //Handle user error
+        char firstChar = www.text[0]; //get a 1 or 0 (true of false in php)
+        string text = www.text.Remove(0, 1);
+
+        if (firstChar == '1')
+        {
+            Debug.Log("We moved a unit!");
+        }
+        else
+        {
+            Debug.Log(text);
+        }
+    }
+
+    private IEnumerator SubmitSetupRoutine(List<int> tileID)
+    {
+        yield return null;
+    }
+
     //---------------------
     // Event subscriptions
     //---------------------
@@ -309,6 +368,10 @@ public class GameManager : MonoBehaviour
         {
             case Callback.OnRefresh:
                 OnRefresh += func;
+                break;
+
+            case Callback.OnGetBoard:
+                OnGetBoard += func;
                 break;
 
             default:
@@ -322,6 +385,10 @@ public class GameManager : MonoBehaviour
         {
             case Callback.OnRefresh:
                 OnRefresh -= func;
+                break;
+
+            case Callback.OnGetBoard:
+                OnGetBoard -= func;
                 break;
 
             default:

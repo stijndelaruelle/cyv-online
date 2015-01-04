@@ -81,6 +81,7 @@ public class MenuFiller : MonoBehaviour
 
         btnButton.onClick.AddListener(() => GameManager.instance.GetBoard(gameID));
         btnButton.onClick.AddListener(() => gameObject.GetComponent<MenuSlider>().Close());
+        btnButton.onClick.AddListener(() => gameObject.GetComponent<MenuSwitcher>().ShowBoardPanel());
 
         y -= btnGame.GetComponent<RectTransform>().sizeDelta.y;
     }
