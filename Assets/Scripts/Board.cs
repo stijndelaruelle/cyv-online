@@ -11,6 +11,14 @@ public class Move
     public int m_FromTileID = -1;
     public int m_ToTileID = -1;
     public int m_KilledUnitID = -1; //If we killed an unit on the last turn, the id is here so we can revert it.
+
+    public void Reset()
+    {
+        m_UnitID = -1;
+        m_FromTileID = -1;
+        m_ToTileID = -1;
+        m_KilledUnitID = -1;
+    }
 };
 
 public class Board : MonoBehaviour, IHasChanged
@@ -29,6 +37,9 @@ public class Board : MonoBehaviour, IHasChanged
 
     [SerializeField]
     private Color[] m_Colors;
+
+    [SerializeField]
+    private Button m_SubmitButton = null;
 
     private List<GameObject> m_Tiles;
     private List<GameObject> m_Units;
@@ -150,6 +161,7 @@ public class Board : MonoBehaviour, IHasChanged
 
     private void OnGetBoard()
     {
+        //Load the board
         string boardInfo = GameManager.instance.CurrentGame.m_Board;
 
         int unitID = 0;
@@ -168,11 +180,126 @@ public class Board : MonoBehaviour, IHasChanged
             }
             ++unitID;
         }
+
+        //Change the text of the button to reflect the gamestate
+        GameInfo currentGame = GameManager.instance.CurrentGame;
+        Text text = m_SubmitButton.gameObject.transform.GetChild(0).GetComponent<Text>();
+        m_SubmitButton.enabled = true;
+
+        switch (currentGame.m_GameState)
+        {
+            case GameState.Setup:
+            {
+                text.text = "Submit setup";
+                break;
+            }
+
+            case GameState.WhiteTurn:
+            {
+                if (currentGame.m_PlayerColor == GameColor.White)
+                {
+                    text.text = "Submit turn";
+                }
+                else
+                {
+                    text.text = "It's " + currentGame.m_OpponentName + " his turn";
+                    m_SubmitButton.enabled = false;
+                }
+                break;
+            }
+
+            case GameState.BlackTurn:
+            {
+                if (currentGame.m_PlayerColor == GameColor.Black)
+                {
+                    text.text = "Submit turn";
+                }
+                else
+                {
+                    text.text = "It's " + currentGame.m_OpponentName + " his turn";
+                    m_SubmitButton.enabled = false;
+                }
+                break;
+            }
+
+            case GameState.GameComplete:
+            {
+                text.text = "Someone won and someone lost, hooray!";
+                m_SubmitButton.enabled = false;
+                break;
+            }
+
+            default:
+                break;
+        }
+            
+        m_LastMove.Reset();
     }
 
     public void SubmitMove()
     {
-        GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
+        GameInfo currentGame = GameManager.instance.CurrentGame;
+
+        //Is this setup time? 
+        if (currentGame.m_GameState == 0)
+        {
+            //Compile a list of all the tiles
+            int fromID = 0;
+            int toID = 25;
+
+            if (currentGame.m_PlayerColor == GameColor.Black)
+            {
+                fromID += 26;
+                toID += 26;
+            }
+
+            List<int> tileIds = new List<int>();
+            for (int unitID = fromID; unitID <= toID; ++unitID)
+            {
+                int tileID = m_Tiles.IndexOf(m_Units[unitID].transform.parent.gameObject);
+
+                if (tileID < 1)
+                {
+                    Debug.Log("Not all units were placed!");
+                    return;
+                }
+
+                tileIds.Add(tileID);
+            }
+
+            GameManager.instance.SubmitSetup(tileIds);
+            m_LastMove.Reset();
+        }
+        else
+        {
+            //Only move when it's your turn
+            if (currentGame.m_PlayerColor == GameColor.White)
+            {
+                if (currentGame.m_GameState == GameState.WhiteTurn)
+                {
+                    GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
+                    m_LastMove.Reset();
+                }
+                else
+                {
+                    Debug.Log("It's not your turn! You are WHITE, and the turn is for BLACK!");
+                }
+            }
+            else
+            {
+                if (currentGame.m_GameState == GameState.BlackTurn)
+                {
+                    GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
+                    m_LastMove.Reset();
+                }
+                else
+                {
+                    Debug.Log("It's not your turn! You are BLACK, and the turn is for WHITE!");
+                }
+            }
+            
+        }
+        
     }
 
     public void HasChanged(GameObject tileObject)
@@ -190,9 +317,16 @@ public class Board : MonoBehaviour, IHasChanged
             }
         }
 
-        m_LastMove.m_FromTileID = m_Tiles.IndexOf(Unit.m_DraggedUnit.OldParent.gameObject); //Get the old TileID
-        m_LastMove.m_ToTileID =   m_Tiles.IndexOf(tileObject); //Get the new TileID
-        m_LastMove.m_UnitID =     m_Units.IndexOf(Unit.m_DraggedUnit.gameObject); //Get the unit ID
+        int unitID = m_Units.IndexOf(Unit.m_DraggedUnit.gameObject); //Get the unit ID
+
+        //Only update when we didn't move the same unit
+        if (m_LastMove.m_UnitID != unitID)
+        {
+            m_LastMove.m_FromTileID = m_Tiles.IndexOf(Unit.m_DraggedUnit.OldParent.gameObject); //Get the old TileID
+        }
+        m_LastMove.m_UnitID  = unitID;
+        m_LastMove.m_ToTileID = m_Tiles.IndexOf(tileObject); //Get the new TileID
+
 
         //Get the killed unit ID
         if (tileObject.transform.childCount > 0)

@@ -157,12 +157,13 @@ public class GameManager : MonoBehaviour
     public void SubmitMove(int unitID, int tileID, int killedID)
     {
         if (!AccountManager.instance.LoginCheck()) return;
-        StartCoroutine(MoveUnitRoutine(unitID, tileID, killedID));
+        StartCoroutine(SubmitMoveRoutine(unitID, tileID, killedID));
     }
 
-    public void SubmitSetup(List<int> tileID)
+    public void SubmitSetup(List<int> tileIds)
     {
-
+        if (!AccountManager.instance.LoginCheck()) return;
+        StartCoroutine(SubmitSetupRoutine(tileIds));
     }
 
     //------------
@@ -316,7 +317,7 @@ public class GameManager : MonoBehaviour
         yield return null;
     }
 
-    private IEnumerator MoveUnitRoutine(int unitID, int tileID, int killedID)
+    private IEnumerator SubmitMoveRoutine(int unitID, int tileID, int killedID)
     {
         AccountManager accountManager = AccountManager.instance;
 
@@ -354,9 +355,47 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private IEnumerator SubmitSetupRoutine(List<int> tileID)
+    private IEnumerator SubmitSetupRoutine(List<int> tileIds)
     {
-        yield return null;
+        AccountManager accountManager = AccountManager.instance;
+
+        //Create a hash for security reasons
+        string hashString = accountManager.ID.ToString() + CurrentGame.m_GameID.ToString();
+        for (int i = 0; i < tileIds.Count; ++i) { hashString += tileIds[i].ToString(); }
+        hashString += Globals.SECRET_KEY;
+
+        string hash = Globals.Md5(hashString);
+
+        //Create the url
+        string url = m_MoveURL + "p=" + accountManager.ID +
+                                 "&g=" + CurrentGame.m_GameID;
+
+        for (int i = 0; i < tileIds.Count; ++i) { m_MoveURL += "&u" + i + "=" + tileIds[i]; }
+        m_MoveURL += "&hash=" + hash;
+
+        //WWW call
+        WWW www = new WWW(url);
+        yield return www;
+
+        //Handle technical error
+        if (www.error != null)
+        {
+            Debug.Log("There was an error submitting the setup in: " + www.error);
+            yield return null;
+        }
+
+        //Handle user error
+        char firstChar = www.text[0]; //get a 1 or 0 (true of false in php)
+        string text = www.text.Remove(0, 1);
+
+        if (firstChar == '1')
+        {
+            Debug.Log("We did a setup!");
+        }
+        else
+        {
+            Debug.Log(text);
+        }
     }
 
     //---------------------

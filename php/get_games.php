@@ -25,8 +25,8 @@
             echo($row['game_id']);
             echo("/"); //add separator
 
-            //Who's turn it is, get that from the board
-            echo("0");
+            //Whats the game state
+            echo($row['game_state']);
             echo("/"); //add separator
 
             //Get the username of the opponent

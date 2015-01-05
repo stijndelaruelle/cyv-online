@@ -38,6 +38,12 @@
             mysql_query("UPDATE cyvasse_boards SET $fieldID = '0' WHERE board_id = '$boardID'") or die (mysql_error());
         }
 
+        //Switch turns around, also calculate win condition here
+        $newGameState = 1;
+        if ($row['game_state'] == 1) { $newGameState = 2; }
+
+        mysql_query("UPDATE cyvasse_games SET game_state = '$newGameState' WHERE game_id = '$p_gameID'") or die (mysql_error());
+
         //Update 
         $white_id = $row['user_id_white'];
         $black_id = $row['user_id_black'];
