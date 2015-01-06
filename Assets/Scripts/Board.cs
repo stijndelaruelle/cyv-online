@@ -73,16 +73,16 @@ public class Board : MonoBehaviour, IHasChanged
 
         //Reserve tile
         GameObject obj = GameObject.Instantiate(m_ReserveTilePrefab) as GameObject;
-        obj.GetComponent<RectTransform>().SetParent(gameObject.GetComponent<RectTransform>());
-        obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, -225.0f);
+        obj.GetComponent<RectTransform>().SetParent(transform.parent.GetComponent<RectTransform>());
+        obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, -175.0f);
         obj.GetComponent<RectTransform>().sizeDelta = new Vector2(1.0f, 170.0f);
-        obj.GetComponent<RectTransform>().localScale = new Vector2(1.2f, 1.2f);
+        obj.GetComponent<RectTransform>().localScale = new Vector2(1.0f, 1.0f);
         m_Tiles.Add(obj);
 
         //11 lines
         int rowWidth = 6;
         float startX = -(width * 3) + (width / 2);
-        float startY = height * 5 + 110.0f;
+        float startY = height * 5;
         int startColor = 0;
 
         for (int i = 0; i < 11; ++i)
@@ -130,7 +130,8 @@ public class Board : MonoBehaviour, IHasChanged
             startY -= height;
         }
 
-        transform.localScale = new Vector3(0.8f, 0.8f, 1.0f);
+        gameObject.GetComponent<RectTransform>().anchoredPosition = new Vector3(0.0f, 110.0f);
+        transform.localScale = new Vector3(0.75f, 0.75f, 1.0f);
     }
 
     private void GenerateUnits()
@@ -163,6 +164,16 @@ public class Board : MonoBehaviour, IHasChanged
     {
         //Load the board
         string boardInfo = GameManager.instance.CurrentGame.m_Board;
+        GameInfo currentGame = GameManager.instance.CurrentGame;
+
+        //Reset rotation & all the locked states
+        transform.rotation = Quaternion.identity;
+
+        foreach (GameObject unit in m_Units)
+        {
+            unit.transform.rotation = Quaternion.identity;
+            unit.GetComponent<CanvasGroup>().blocksRaycasts = true;
+        }
 
         int unitID = 0;
         while (boardInfo.Length > 0)
@@ -177,20 +188,54 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 m_Units[unitID].transform.SetParent(m_Tiles[tileID].transform);
                 m_Units[unitID].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+
+                //Lock the pieces if you're not allowed to move them
+                bool lockUnit = false;
+
+                if (tileID == 0 && currentGame.m_GameState != GameState.Setup) lockUnit = true;
+
+                if (currentGame.m_PlayerColor == GameColor.White)
+                {
+                    if (currentGame.m_GameState != GameState.WhiteTurn) lockUnit = true;
+                    if (unitID > 25)                                    lockUnit = true;
+                }
+
+                if (currentGame.m_PlayerColor == GameColor.Black)
+                {
+                    if (currentGame.m_GameState != GameState.BlackTurn) lockUnit = true;
+                    if (unitID <= 25)                                   lockUnit = true;
+                }
+
+                if (lockUnit)
+                {
+                    m_Units[unitID].GetComponent<CanvasGroup>().blocksRaycasts = false;
+                }
             }
             ++unitID;
         }
 
-        //Change the text of the button to reflect the gamestate
-        GameInfo currentGame = GameManager.instance.CurrentGame;
-        Text text = m_SubmitButton.gameObject.transform.GetChild(0).GetComponent<Text>();
-        m_SubmitButton.enabled = true;
+        //Rotate the board if we're black
+        if (currentGame.m_PlayerColor == GameColor.Black)
+        {
+            //Rotate the board
+            transform.Rotate(new Vector3(0.0f, 0.0f, 180.0f));
 
+            //Rotate all the pieces, so they still face down
+            foreach(GameObject unit in m_Units)
+            {
+                if (unit.transform.parent != m_Tiles[0].transform)
+                {
+                    unit.transform.Rotate(new Vector3(0.0f, 0.0f, 180.0f));
+                }
+            }
+        }
+
+        //Change the text of the button to reflect the gamestate
         switch (currentGame.m_GameState)
         {
             case GameState.Setup:
             {
-                text.text = "Submit setup";
+                UpdateSubmitButton("Submit setup", true);
                 break;
             }
 
@@ -198,12 +243,11 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 if (currentGame.m_PlayerColor == GameColor.White)
                 {
-                    text.text = "Submit turn";
+                    UpdateSubmitButton("Submit turn", true);
                 }
                 else
                 {
-                    text.text = "It's " + currentGame.m_OpponentName + " his turn";
-                    m_SubmitButton.enabled = false;
+                    UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
                 }
                 break;
             }
@@ -212,20 +256,18 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 if (currentGame.m_PlayerColor == GameColor.Black)
                 {
-                    text.text = "Submit turn";
+                    UpdateSubmitButton("Submit turn", true);
                 }
                 else
                 {
-                    text.text = "It's " + currentGame.m_OpponentName + " his turn";
-                    m_SubmitButton.enabled = false;
+                    UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
                 }
                 break;
             }
 
             case GameState.GameComplete:
             {
-                text.text = "Someone won and someone lost, hooray!";
-                m_SubmitButton.enabled = false;
+                UpdateSubmitButton("Someone won and someone lost, hooray!", false);
                 break;
             }
 
@@ -268,17 +310,32 @@ public class Board : MonoBehaviour, IHasChanged
             }
 
             GameManager.instance.SubmitSetup(tileIds);
-            m_LastMove.Reset();
         }
         else
         {
+            if (m_LastMove.m_UnitID == -1)
+            {
+                Debug.Log("You didn't move a unit!");
+                return;
+            }
+
             //Only move when it's your turn
             if (currentGame.m_PlayerColor == GameColor.White)
             {
                 if (currentGame.m_GameState == GameState.WhiteTurn)
                 {
-                    GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
-                    m_LastMove.Reset();
+                    if (m_LastMove.m_UnitID > 25)
+                    {
+                        Debug.Log("It's not your unit! You are WHITE, and you moved a BLACK unit!");
+                    }
+                    else
+                    {
+                        GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
+                        m_LastMove.Reset();
+
+                        //Change the text of the button
+                        UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
+                    }
                 }
                 else
                 {
@@ -289,64 +346,91 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 if (currentGame.m_GameState == GameState.BlackTurn)
                 {
-                    GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
-                    m_LastMove.Reset();
+                    if (m_LastMove.m_UnitID <= 25)
+                    {
+                        Debug.Log("It's not your unit! You are BLACK, and you moved a WHITE unit!");
+                    }
+                    else
+                    {
+                        GameManager.instance.SubmitMove(m_LastMove.m_UnitID, m_LastMove.m_ToTileID, m_LastMove.m_KilledUnitID);
+                        m_LastMove.Reset();
+
+                        //Change the text of the button
+                        UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
+                    }
                 }
                 else
                 {
                     Debug.Log("It's not your turn! You are BLACK, and the turn is for WHITE!");
                 }
             }
-            
         }
-        
     }
 
     public void HasChanged(GameObject tileObject)
     {
-        //Revert the last move if there is any
-        if (m_LastMove.m_UnitID != -1)
+        //Don't use the last move system when we are in setup mode
+        if (GameManager.instance.CurrentGame.m_GameState != 0)
         {
-            m_Units[m_LastMove.m_UnitID].transform.SetParent(m_Tiles[m_LastMove.m_FromTileID].transform);
-            m_Units[m_LastMove.m_UnitID].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-
-            if (m_LastMove.m_KilledUnitID != -1)
+            //Revert the last move if there is any
+            if (m_LastMove.m_UnitID != -1)
             {
-                m_Units[m_LastMove.m_KilledUnitID].transform.SetParent(m_Tiles[m_LastMove.m_ToTileID].transform);
-                m_Units[m_LastMove.m_KilledUnitID].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                m_Units[m_LastMove.m_UnitID].transform.SetParent(m_Tiles[m_LastMove.m_FromTileID].transform);
+                m_Units[m_LastMove.m_UnitID].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+
+                if (m_LastMove.m_KilledUnitID != -1)
+                {
+                    m_Units[m_LastMove.m_KilledUnitID].transform.SetParent(m_Tiles[m_LastMove.m_ToTileID].transform);
+                    m_Units[m_LastMove.m_KilledUnitID].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                }
             }
-        }
 
-        int unitID = m_Units.IndexOf(Unit.m_DraggedUnit.gameObject); //Get the unit ID
+            int unitID = m_Units.IndexOf(Unit.m_DraggedUnit.gameObject); //Get the unit ID
 
-        //Only update when we didn't move the same unit
-        if (m_LastMove.m_UnitID != unitID)
-        {
-            m_LastMove.m_FromTileID = m_Tiles.IndexOf(Unit.m_DraggedUnit.OldParent.gameObject); //Get the old TileID
-        }
-        m_LastMove.m_UnitID  = unitID;
-        m_LastMove.m_ToTileID = m_Tiles.IndexOf(tileObject); //Get the new TileID
+            //Only update when we didn't move the same unit
+            if (m_LastMove.m_UnitID != unitID)
+            {
+                m_LastMove.m_FromTileID = m_Tiles.IndexOf(Unit.m_DraggedUnit.OldParent.gameObject); //Get the old TileID
+            }
+            m_LastMove.m_UnitID = unitID;
+            m_LastMove.m_ToTileID = m_Tiles.IndexOf(tileObject); //Get the new TileID
 
 
-        //Get the killed unit ID
-        if (tileObject.transform.childCount > 0)
-        {
-            m_LastMove.m_KilledUnitID = m_Units.IndexOf(tileObject.transform.GetChild(0).gameObject);
+            //Get the killed unit ID
+            if (tileObject.transform.childCount > 0)
+            {
+                m_LastMove.m_KilledUnitID = m_Units.IndexOf(tileObject.transform.GetChild(0).gameObject);
 
-            //We killed a unit, move it to the first row
-            Transform killedUnit = tileObject.transform.GetChild(0);
-            killedUnit.SetParent(m_Tiles[0].transform);
-            killedUnit.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                //We killed a unit, move it to the first row
+                Transform killedUnit = tileObject.transform.GetChild(0);
+                killedUnit.SetParent(m_Tiles[0].transform);
+                killedUnit.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 
-            //tileObject.transform.GetChild(0).gameObject.GetComponent<CanvasGroup>().blocksRaycasts = true; //Unable to move
-        }
-        else
-        {
-            m_LastMove.m_KilledUnitID = -1;
+                //tileObject.transform.GetChild(0).gameObject.GetComponent<CanvasGroup>().blocksRaycasts = true; //Unable to move
+            }
+            else
+            {
+                m_LastMove.m_KilledUnitID = -1;
+            }
         }
 
         //Set the currently dragged item to this tile
         Unit.m_DraggedUnit.gameObject.transform.SetParent(tileObject.transform);
+    }
+
+    private void UpdateSubmitButton(string text, bool enabled)
+    {
+        m_SubmitButton.gameObject.transform.GetChild(0).GetComponent<Text>().text = text;
+        m_SubmitButton.enabled = enabled;
+
+        //Disable all the units as well
+        if (!enabled)
+        {
+            foreach(GameObject unit in m_Units)
+            {
+                unit.GetComponent<CanvasGroup>().blocksRaycasts = false;
+            }
+        }
     }
 }
 
