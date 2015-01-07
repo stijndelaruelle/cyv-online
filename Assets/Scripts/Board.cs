@@ -41,6 +41,9 @@ public class Board : MonoBehaviour, IHasChanged
     [SerializeField]
     private Button m_SubmitButton = null;
 
+    [SerializeField]
+    private Text m_HomelandText = null;
+
     private List<GameObject> m_Tiles;
     private List<GameObject> m_Units;
     private Move m_LastMove;
@@ -95,7 +98,7 @@ public class Board : MonoBehaviour, IHasChanged
                 obj = GameObject.Instantiate(m_TilePrefab) as GameObject;
                 obj.GetComponent<RectTransform>().SetParent(gameObject.GetComponent<RectTransform>()); //Parent this to us
                 obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(x, startY);
-                obj.GetComponent<Image>().color = m_Colors[color];
+                obj.GetComponent<Tile>().SetColor(m_Colors[color]);
 
                 //Manage neighbours backwards (so we are sure they already exist)
 
@@ -153,7 +156,7 @@ public class Board : MonoBehaviour, IHasChanged
                     Color color = Color.white;
                     if (side == 1) color = Color.black;
 
-                    obj.GetComponent<Image>().color = color;
+                    obj.GetComponent<Unit>().SetColor(color);
                     m_Units.Add(obj);
                 }
             }
@@ -165,17 +168,56 @@ public class Board : MonoBehaviour, IHasChanged
         //Load the board
         string boardInfo = GameManager.instance.CurrentGame.m_Board;
         GameInfo currentGame = GameManager.instance.CurrentGame;
+        GameState gameState = currentGame.m_GameState;
 
-        //Reset rotation & all the locked states
-        transform.rotation = Quaternion.identity;
+        //Reset board
+        ResetBoard();
 
-        foreach (GameObject unit in m_Units)
+        //Color all the homeland tiles black or the home color (later)
+        for (int tileID = 1; tileID < m_Tiles.Count; ++tileID)
         {
-            unit.transform.rotation = Quaternion.identity;
-            unit.GetComponent<CanvasGroup>().blocksRaycasts = true;
+            Tile tile = m_Tiles[tileID].GetComponent<Tile>();
+
+            tile.ResetColor();
+            if (currentGame.m_GameState == GameState.Setup)
+            {
+                //Set the text
+                m_HomelandText.text = "Homeland of " + currentGame.m_OpponentName;
+                m_HomelandText.gameObject.SetActive(true);
+
+                //Make the other's homeland black
+                if (currentGame.m_PlayerColor == GameColor.White && tileID <= 51)
+                {
+                    tile.SetColor(Color.black);
+                }
+
+                if (currentGame.m_PlayerColor == GameColor.Black && tileID >= 41)
+                {
+                    tile.SetColor(Color.black);
+                }
+            }
         }
 
+        //Actually load the board
         int unitID = 0;
+        
+        //During setup we only receive the position of our own pieces, anti pre-game cheating
+        if (gameState == GameState.Setup)
+        {
+            int startHideId = 26;
+            if (currentGame.m_PlayerColor == GameColor.Black)
+            {
+                startHideId = 0;
+                unitID = 26;
+            }
+
+            //Also hide the opponents pieces, we don't need to see them (they will always be on tile_id 0 anyways
+            for (int i = startHideId; i < startHideId + 26; ++i)
+            {
+                m_Units[i].gameObject.SetActive(false);
+            }
+        }
+
         while (boardInfo.Length > 0)
         {
             string strTileID = boardInfo.Substring(0, boardInfo.IndexOf("/"));
@@ -192,18 +234,22 @@ public class Board : MonoBehaviour, IHasChanged
                 //Lock the pieces if you're not allowed to move them
                 bool lockUnit = false;
 
-                if (tileID == 0 && currentGame.m_GameState != GameState.Setup) lockUnit = true;
+                if (tileID == 0 && gameState != GameState.Setup) lockUnit = true;
 
                 if (currentGame.m_PlayerColor == GameColor.White)
                 {
-                    if (currentGame.m_GameState != GameState.WhiteTurn) lockUnit = true;
-                    if (unitID > 25)                                    lockUnit = true;
+                    if (gameState != GameState.WhiteTurn &&
+                        gameState != GameState.Setup) lockUnit = true;
+
+                    if (unitID > 25)                  lockUnit = true;
                 }
 
                 if (currentGame.m_PlayerColor == GameColor.Black)
                 {
-                    if (currentGame.m_GameState != GameState.BlackTurn) lockUnit = true;
-                    if (unitID <= 25)                                   lockUnit = true;
+                    if (gameState != GameState.BlackTurn &&
+                        gameState != GameState.Setup) lockUnit = true;
+
+                    if (unitID <= 25)                 lockUnit = true;
                 }
 
                 if (lockUnit)
@@ -241,27 +287,15 @@ public class Board : MonoBehaviour, IHasChanged
 
             case GameState.WhiteTurn:
             {
-                if (currentGame.m_PlayerColor == GameColor.White)
-                {
-                    UpdateSubmitButton("Submit turn", true);
-                }
-                else
-                {
-                    UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
-                }
+                if (currentGame.m_PlayerColor == GameColor.White) UpdateSubmitButton("Submit turn", true);
+                else                                              UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
                 break;
             }
 
             case GameState.BlackTurn:
             {
-                if (currentGame.m_PlayerColor == GameColor.Black)
-                {
-                    UpdateSubmitButton("Submit turn", true);
-                }
-                else
-                {
-                    UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
-                }
+                if (currentGame.m_PlayerColor == GameColor.Black) UpdateSubmitButton("Submit turn", true);
+                else                                              UpdateSubmitButton("It's " + currentGame.m_OpponentName + " his turn", false);
                 break;
             }
 
@@ -430,6 +464,20 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 unit.GetComponent<CanvasGroup>().blocksRaycasts = false;
             }
+        }
+    }
+
+    private void ResetBoard()
+    {
+        //Reset rotation, colors & all the locked states
+        transform.rotation = Quaternion.identity;
+        m_HomelandText.gameObject.SetActive(false);
+
+        foreach (GameObject unit in m_Units)
+        {
+            unit.transform.rotation = Quaternion.identity;
+            unit.GetComponent<CanvasGroup>().blocksRaycasts = true;
+            unit.SetActive(true);
         }
     }
 }

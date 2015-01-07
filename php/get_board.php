@@ -32,6 +32,12 @@
             echo("User isn't even part of this game (user id: " . $p_ID . ")");
         }
 
+        $isPlayerBlack = false;
+        if ($p_ID == $row['user_id_black']) $isPlayerBlack = true;
+
+        $isInSetupMode = false;
+        if ($row['game_state'] == 0) $isInSetupMode = true;
+
         //Get the board
         $boardID = $row['board_id'];
         $query = sprintf("SELECT * FROM cyvasse_boards WHERE board_id = '$boardID'");
@@ -47,8 +53,17 @@
 
         General::ReturnSuccess(true);
 
-        //Return all the units
-        for ($i = 0; $i < 52; ++$i)
+        //Return all the players units (don't send the other player's units to avoid cheating)
+        $beginUnitID = 0;
+        $endUnitID = 52;
+
+        if ($isInSetupMode)
+        {
+            if ($isPlayerBlack) $beginUnitID = 26;
+            $endUnitID = $beginUnitID + 26;
+        }
+
+        for ($i = $beginUnitID; $i < $endUnitID; ++$i)
         {
             echo($row['unit_' . $i]); echo("/");
         }

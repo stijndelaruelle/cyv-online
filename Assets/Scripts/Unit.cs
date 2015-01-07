@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class Unit : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -44,5 +45,10 @@ public class Unit : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
         }
 
         transform.localScale = new Vector3(1.0f, 1.0f, 1.0f); //For some reason this resets
+    }
+
+    public void SetColor(Color color)
+    {
+        gameObject.GetComponent<Image>().color = color;
     }
 }

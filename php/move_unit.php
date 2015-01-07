@@ -27,6 +27,20 @@
         $row = mysql_fetch_assoc($result);
         $boardID = $row['board_id'];
 
+        if ($row['game_state'] == 0)
+        {
+            General::ReturnSuccess(false);
+            echo("The game is in setup state, how are you even moving pieces?");
+            return;
+        }
+
+        if ($row['game_state'] == 3)
+        {
+            General::ReturnSuccess(false);
+            echo("The game is in over, how are you even moving pieces?");
+            return;
+        }
+
         //Alter the board
         $fieldID = "unit_" . $p_unitID;
         mysql_query("UPDATE cyvasse_boards SET $fieldID = '$p_tileID' WHERE board_id = '$boardID'") or die (mysql_error());
@@ -55,6 +69,6 @@
     else
     {
         General::ReturnSuccess(false);
-        echo("Hashes didn't match in create game!");
+        echo("Hashes didn't match in move unit!");
     }
 ?>

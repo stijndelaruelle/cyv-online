@@ -104,7 +104,8 @@ public class GameManager : MonoBehaviour
     private string m_CreateGameURL = "http://blargal.com/cyvasse/create_game.php?";
     private string m_GetGamesURL = "http://blargal.com/cyvasse/get_games.php?";
     private string m_GetBoardURL = "http://blargal.com/cyvasse/get_board.php?";
-    private string m_MoveURL = "http://blargal.com/cyvasse/move.php?";
+    private string m_MoveUnitURL = "http://blargal.com/cyvasse/move_unit.php?";
+    private string m_SetupUnitsURL = "http://blargal.com/cyvasse/setup_units.php?";
 
     private List<GameInfo> m_GameInfo = new List<GameInfo>();
     public List<GameInfo> GameInfo
@@ -324,12 +325,12 @@ public class GameManager : MonoBehaviour
         //Create a hash for security reasons
         string hash = Globals.Md5(accountManager.ID.ToString() +CurrentGame.m_GameID.ToString() + unitID.ToString() + tileID.ToString() + killedID.ToString() + Globals.SECRET_KEY);
 
-        string url = m_MoveURL + "p=" + accountManager.ID +
-                                 "&g=" + CurrentGame.m_GameID +
-                                 "&u=" + unitID +
-                                 "&t=" + tileID +
-                                 "&k=" + killedID +
-                                 "&hash=" + hash;
+        string url = m_MoveUnitURL + "p=" + accountManager.ID +
+                                     "&g=" + CurrentGame.m_GameID +
+                                     "&u=" + unitID +
+                                     "&t=" + tileID +
+                                     "&k=" + killedID +
+                                     "&hash=" + hash;
 
         WWW www = new WWW(url);
         yield return www;
@@ -367,11 +368,11 @@ public class GameManager : MonoBehaviour
         string hash = Globals.Md5(hashString);
 
         //Create the url
-        string url = m_MoveURL + "p=" + accountManager.ID +
-                                 "&g=" + CurrentGame.m_GameID;
+        string url = m_SetupUnitsURL + "p=" + accountManager.ID +
+                                       "&g=" + CurrentGame.m_GameID;
 
-        for (int i = 0; i < tileIds.Count; ++i) { m_MoveURL += "&u" + i + "=" + tileIds[i]; }
-        m_MoveURL += "&hash=" + hash;
+        for (int i = 0; i < tileIds.Count; ++i) { url += "&u" + i + "=" + tileIds[i]; }
+        url += "&hash=" + hash;
 
         //WWW call
         WWW www = new WWW(url);
