@@ -45,16 +45,23 @@
         $fieldID = "unit_" . $p_unitID;
         mysql_query("UPDATE cyvasse_boards SET $fieldID = '$p_tileID' WHERE board_id = '$boardID'") or die (mysql_error());
 
+        //Switch turns around
+        $newGameState = 1;
+        if ($row['game_state'] == 1) { $newGameState = 2; }
+
         //Kill the killed unit
         if ($p_killedID != -1)
         {
             $fieldID = "unit_" . $p_killedID;
             mysql_query("UPDATE cyvasse_boards SET $fieldID = '0' WHERE board_id = '$boardID'") or die (mysql_error());
-        }
 
-        //Switch turns around, also calculate win condition here
-        $newGameState = 1;
-        if ($row['game_state'] == 1) { $newGameState = 2; }
+            //If the killed unit was a king, the game is over!
+            if ($p_killedID == 6 || $p_killedID == 32) //6 = white king, 32 = black king
+            {
+                //Set the game to completed!
+                $newGameState = 3;
+            }
+        }
 
         mysql_query("UPDATE cyvasse_games SET game_state = '$newGameState' WHERE game_id = '$p_gameID'") or die (mysql_error());
 

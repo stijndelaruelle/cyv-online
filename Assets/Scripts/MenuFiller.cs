@@ -16,6 +16,9 @@ public class MenuFiller : MonoBehaviour
     [SerializeField]
     private GameObject m_Label = null;
 
+    [SerializeField]
+    private RectTransform m_GameListPanel = null;
+
     private List<GameObject> m_SpawnedButtons = null; //We don't reuse buttons, even tough that's better for memory. This is just a quick prototype.
 
     private void Start()
@@ -37,70 +40,115 @@ public class MenuFiller : MonoBehaviour
         ClearObjects();
         List<GameInfo> lstGameInfo = GameManager.instance.GameInfo;
 
-        float y = 290;
+        //Cache data
+        List<GameInfo> lstYourTurn = new List<GameInfo>();
+        List<GameInfo> lstOpponentsTurn = new List<GameInfo>();
+        List<GameInfo> lstCompleted = new List<GameInfo>();
 
-        AddLabel("Your turn", ref y);
-        
         foreach (GameInfo gameInfo in lstGameInfo)
         {
-            AddButton(gameInfo.m_GameID, gameInfo.m_OpponentName, ref y);
+            if ((gameInfo.m_GameState == GameState.WhiteTurn && gameInfo.m_PlayerColor == GameColor.White) ||
+                (gameInfo.m_GameState == GameState.BlackTurn && gameInfo.m_PlayerColor == GameColor.Black) ||
+                (gameInfo.m_GameState == GameState.Setup))
+            {
+                lstYourTurn.Add(gameInfo);
+            }
+
+            else if ((gameInfo.m_GameState == GameState.WhiteTurn && gameInfo.m_PlayerColor != GameColor.White) ||
+                    (gameInfo.m_GameState == GameState.BlackTurn && gameInfo.m_PlayerColor != GameColor.Black))
+            {
+                lstOpponentsTurn.Add(gameInfo);
+            }
+
+            else if (gameInfo.m_GameState == GameState.GameComplete)
+            {
+                lstCompleted.Add(gameInfo);
+            }
         }
 
-        AddNewGameButton(y);
+        //-------------------------
+
+        AddLabel("Your turn");
+        
+        foreach (GameInfo gameInfo in lstYourTurn)
+        {
+            AddButton(gameInfo.m_GameID, gameInfo.m_OpponentName);
+        }
+
+        AddNewGameButton();
+
+        //-------------------------
+
+        if (lstOpponentsTurn.Count > 0)
+        {
+            AddLabel("Opponents turn");
+
+            foreach (GameInfo gameInfo in lstOpponentsTurn)
+            {
+                AddButton(gameInfo.m_GameID, gameInfo.m_OpponentName);
+            }
+        }
+
+        //-------------------------
+        if (lstCompleted.Count > 0)
+        {
+            AddLabel("Completed");
+
+            foreach (GameInfo gameInfo in lstCompleted)
+            {
+                AddButton(gameInfo.m_GameID, gameInfo.m_OpponentName);
+            }
+        }
     }
 
-    private void AddLabel(string title, ref float y)
+    private void AddLabel(string title)
     {
+        if (m_GameListPanel == null) return;
+
         GameObject label = GameObject.Instantiate(m_Label) as GameObject;
         m_SpawnedButtons.Add(label);
 
         RectTransform labelTransform = label.GetComponent<RectTransform>();
-
-        labelTransform.SetParent(gameObject.GetComponent<RectTransform>());
-        labelTransform.anchoredPosition = new Vector3(0.0f, y, 0.0f);
-        labelTransform.sizeDelta = new Vector2(1.0f, 60.0f);
+        labelTransform.SetParent(m_GameListPanel);
 
         label.GetComponent<Text>().text = title;
-
-        y -= label.GetComponent<RectTransform>().sizeDelta.y;
     }
 
-    private void AddButton(int gameID, string name, ref float y)
+    private void AddButton(int gameID, string name)
     {
+        if (m_GameListPanel == null) return;
+
         GameObject btnGame = GameObject.Instantiate(m_GameButton) as GameObject;
         m_SpawnedButtons.Add(btnGame);
 
         RectTransform btnTransform = btnGame.GetComponent<RectTransform>();
         Button btnButton = btnGame.GetComponent<Button>();
 
-        btnTransform.SetParent(gameObject.GetComponent<RectTransform>());
-        btnTransform.anchoredPosition = new Vector3(0.0f, y, 0.0f);
+        btnTransform.SetParent(m_GameListPanel);
+        btnTransform.GetChild(0).GetComponent<Text>().text = "v.s. " + name;
         btnTransform.sizeDelta = new Vector2(1.0f, 40.0f);
 
-        btnTransform.GetChild(0).GetComponent<Text>().text = "v.s. " + name;
-
         btnButton.onClick.AddListener(() => GameManager.instance.GetBoard(gameID));
-        btnButton.onClick.AddListener(() => gameObject.GetComponent<MenuSlider>().Close());
-        btnButton.onClick.AddListener(() => gameObject.GetComponent<MenuSwitcher>().ShowBoardPanel());
-
-        y -= btnGame.GetComponent<RectTransform>().sizeDelta.y;
+        btnButton.onClick.AddListener(() => transform.parent.gameObject.GetComponent<MenuSlider>().Close());
+        btnButton.onClick.AddListener(() => transform.parent.gameObject.GetComponent<MenuSwitcher>().ShowBoardPanel());
     }
 
-    private void AddNewGameButton(float y)
+    private void AddNewGameButton()
     {
+        if (m_GameListPanel == null) return;
+
         GameObject btnNewGame = GameObject.Instantiate(m_NewGameButton) as GameObject;
         m_SpawnedButtons.Add(btnNewGame);
 
         RectTransform btnNewTransform = btnNewGame.GetComponent<RectTransform>();
         Button btnNewButton = btnNewGame.GetComponent<Button>();
 
-        btnNewTransform.SetParent(gameObject.GetComponent<RectTransform>());
-        btnNewTransform.anchoredPosition = new Vector3(0.0f, y, 0.0f);
+        btnNewTransform.SetParent(m_GameListPanel);
         btnNewTransform.sizeDelta = new Vector2(1.0f, 40.0f);
 
         //Add click events
-        btnNewButton.onClick.AddListener(() => gameObject.GetComponent<MenuSwitcher>().ShowNewPanel());
-        btnNewButton.onClick.AddListener(() => gameObject.GetComponent<MenuSlider>().Close());
+        btnNewButton.onClick.AddListener(() => transform.parent.gameObject.GetComponent<MenuSwitcher>().ShowNewPanel());
+        btnNewButton.onClick.AddListener(() => transform.parent.gameObject.GetComponent<MenuSlider>().Close());
     }
 
     private void ClearObjects()

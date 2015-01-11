@@ -64,8 +64,15 @@
 
 
         //Check if both players submitted, if so the game moves on to the next state (white player move)
+        //If both kings are on the board, the game has started (unit 6 & 32)
+        $query = sprintf("SELECT * FROM cyvasse_boards WHERE board_id = '$boardID'");
+        $result = mysql_query($query) or die (mysql_error());
+        $row = mysql_fetch_assoc($result);
 
-        //mysql_query("UPDATE cyvasse_games SET game_state = '1' WHERE game_id = '$p_gameID'") or die (mysql_error());
+        if ($row['unit_6'] != 0 && $row['unit_32'] != 0)
+        {
+            mysql_query("UPDATE cyvasse_games SET game_state = '1' WHERE game_id = '$p_gameID'") or die (mysql_error());
+        }
 
         //Update 
         $white_id = $row['user_id_white'];

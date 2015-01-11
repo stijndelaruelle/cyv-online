@@ -1,0 +1,49 @@
+Cyvasse todo list
+------------------
+
+Gameplay
+----------
+
+-> Disallow users from slaying their own pieces
+-> Disallow users from stacking units! (especially during setup mode)
+
+-> Define refresh times (on move submit & otherwise manual?)
+
+-> Implement army value idea in setup
+
+-> Add custom rules
+- Max army value
+- Move range of all units
+- Board size
+- Board layout (hex/square)
+
+
+UI
+----------
+
+-> Add profile management
+	- Change password
+	- Set avatar
+	- Set home colour
+
+-> Add news block (shows after login)
+-> Add user avatar
+	- AVATAR = HOUSE FLAG????? -> AWESOME
+	- Back Color
+	- Front Color
+	- Border style
+	- Icon Style
+
+Social
+---------
+-> Add facebook login/accounts
+-> Add google play features
+
+-> Add advertisements
+
+-> Add achievements
+	- Unlock new boards
+	- Unlock new home colours
+
+
+Random woord: Midnight sun

@@ -334,11 +334,11 @@ public class Board : MonoBehaviour, IHasChanged
             {
                 int tileID = m_Tiles.IndexOf(m_Units[unitID].transform.parent.gameObject);
 
-                if (tileID < 1)
-                {
-                    Debug.Log("Not all units were placed!");
-                    return;
-                }
+                //if (tileID < 1)
+                //{
+                //    Debug.Log("Not all units were placed!");
+                //    return;
+                //}
 
                 tileIds.Add(tileID);
             }

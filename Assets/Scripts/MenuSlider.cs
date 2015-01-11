@@ -83,6 +83,9 @@ public class MenuSlider : MonoBehaviour
                     }
                 }
                 
+                //If we're dragging a unit, this is always false
+                if (Unit.m_DraggedUnit != null) temp = false;
+
                 if (temp)
                 {
                     m_IsDragging = true;

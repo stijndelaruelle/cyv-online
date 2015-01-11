@@ -20,7 +20,8 @@ public class AccountManager : MonoBehaviour
 
     //delegates
     private event Globals.CallbackHandler OnLogin = null;
-    
+    private event Globals.CallbackHandler OnLogout = null;
+
     //Variables
     [SerializeField]
     private InputField m_UsernameField;
@@ -70,6 +71,8 @@ public class AccountManager : MonoBehaviour
         m_Username = "";
         m_ID = -1;
         m_SelectedUserID = -1;
+
+        if (OnLogout != null) OnLogout();
     }
 
     public void Register()
@@ -209,6 +212,10 @@ public class AccountManager : MonoBehaviour
                 OnLogin += func;
                 break;
 
+            case Callback.OnLogout:
+                OnLogout += func;
+                break;
+
             default:
                 break;
         }
@@ -220,6 +227,10 @@ public class AccountManager : MonoBehaviour
         {
             case Callback.OnLogin:
                 OnLogin -= func;
+                break;
+
+            case Callback.OnLogout:
+                OnLogout -= func;
                 break;
 
             default:
